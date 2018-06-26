@@ -25,7 +25,10 @@ while guesseTimes < 6:
 		break
 
 if guess == number:
+	print()
 	print('Good job,' + myName + '! you guessed my bumber in' + str(guesseTimes) + 'times.')
 	
 if guess != number:
-	print('the number i was thinking of was ' + str(nnumber))
+	print()
+	print('you can\'t guessed this number')
+	print('the number i was thinking of was ' + str(number))
