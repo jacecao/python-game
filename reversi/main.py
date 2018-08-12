@@ -12,6 +12,10 @@ import sys
 SPACE = ' ' * 5
 SPACE_3 = ' ' * 3
 
+# 记录上一个落子的坐标
+# 第一个元素记录x坐标，第二个元素记录y坐标，第三个元素记录是什么落子‘x’'o'
+MOVED_X_Y = []
+
 # 绘制棋盘数据
 def drawBoard(board):
 	HLINE = '+' + '---+' * 8
@@ -26,7 +30,12 @@ def drawBoard(board):
 		print(y+1, end=' ')
 
 		for x in range(8):
-			VLINE += ('| %s' % board[x][y]) + ' '
+			if len(MOVED_X_Y) == 2 and MOVED_X_Y[0] == x and MOVED_X_Y[1] == y:
+
+				VLINE += ( '|.%s' % board[x][y] ) + '.'
+			else:
+
+				VLINE += ( '| %s' % board[x][y] ) + ' '
 
 		print(SPACE_3 + VLINE + '|')
 		print(SPACE + HLINE)	
@@ -170,7 +179,7 @@ def enterPlayerTile():
 	if tile == 'X':
 		return ['X', 'O']
 	if tile == 'O':
-		return ['X', 'O']	
+		return ['O', 'X']	
 
 # 执行棋盘落子
 def makeMove(board, tile, xstart, ystart):
@@ -181,11 +190,26 @@ def makeMove(board, tile, xstart, ystart):
 	if tilesToFlip == False:
 		return False
 	# 如果落子有效
-	# 执行落子
+	# 执行落子，并标记当前落子
 	board[xstart][ystart] = tile
+	# 检查上一回标记落子的坐标
+	if len(MOVED_X_Y) == 2:
+		# 如果已经有上一次落子的记录
+		# 更新为当前落子坐标
+		MOVED_X_Y[0] = xstart
+		MOVED_X_Y[1] = ystart
+	else:
+		# 如果没有记录上一次落子情况
+		# 那么这里第一次添加落子信息
+		MOVED_X_Y.append(xstart)
+		MOVED_X_Y.append(ystart)
+
 	# 并翻转对方的落子
 	for x, y in tilesToFlip:
 		board[x][y] = tile
+
+	# 打印落子坐标
+	print('**** Move To X=%s Y=%s ****', (xstart, ystart)) 
 
 	return True	
 
@@ -271,6 +295,7 @@ def whoGosFirst():
 def playAgin():
 	print('Do you want to play again?(yes or no)')
 	return input().lower().startswith('y')											 
+
 # 初始程序
 def init():
 	print('WELCOME TO REVERS!')
