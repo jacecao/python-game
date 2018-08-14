@@ -1,5 +1,9 @@
 # 64格棋盘游戏
 # 电脑和电脑玩
+# 不再绘制棋盘和每局得分显示
+# 最终只显示输赢百分比
+# 
+# 增加多种算法
 
 import random
 import sys
@@ -10,30 +14,6 @@ SPACE_3 = ' ' * 3
 # 记录上一个落子的坐标
 # 第一个元素记录x坐标，第二个元素记录y坐标，第三个元素记录是什么落子‘x’'o'
 MOVED_X_Y = []
-
-# 绘制棋盘数据
-def drawBoard(board):
-	HLINE = '+' + '---+' * 8
-
-	print(SPACE + '  1   2   3   4   5   6   7   8')
-	print()
-	print(SPACE + HLINE)
-
-	for y in range(8):
-		
-		VLINE = ''
-		print(y+1, end=' ')
-
-		for x in range(8):
-			if len(MOVED_X_Y) == 2 and MOVED_X_Y[0] == x and MOVED_X_Y[1] == y:
-				# 如果有上一次落子信息记录，那么对上一次落子信息作特殊标记
-				VLINE += ( '|.%s' % board[x][y] ) + '.'
-			else:
-
-				VLINE += ( '| %s' % board[x][y] ) + ' '
-
-		print(SPACE_3 + VLINE + '|')
-		print(SPACE + HLINE)	
 
 # 重设棋盘数据
 def resetBoard(board):
@@ -63,9 +43,9 @@ def getBoardCopy(board):
 
 	return dupeBoard		
 
-
 # 检查当前坐标落子是否有效
 # 也就是判断当前落子是否能翻转对方落子
+# 同时返回可以翻转棋子的坐标
 def isValidMove(board, tile, xstart, ystart):
 	if board[xstart][ystart] != ' ' or not isOnBoard(xstart, ystart):
 		return False
@@ -145,6 +125,11 @@ def getValidMoves(board, tile):
 
 	return validMoves
 
+# new
+# 随机获取一个可以落子的位置
+def getRandomMove(board, tile):
+	return random.choice(getValidMoves(board, tile))
+
 # 计算双方棋盘落子分数
 def getScoreOfBoard(board):
 	x_scroe = 0
@@ -192,17 +177,17 @@ def makeMove(board, tile, xstart, ystart):
 def isOnCorner(x, y):
 	return (x == 0 and y == 0) or (x == 7 and y == 0) or (x == 0 and y == 7) or (x == 7 and y == 7)
 
+# new
+# 检查落子坐标是否在棋盘边上
+def isOnSide(x, y):
+	return x == 0 or x == 7 or y == 0 or y == 7
 
-# 获取计算机落子
+
+# 获取计算机落子普通方式
 def getComputerMove(board, computerTile):
 	possibleMoves = getValidMoves(board, computerTile)
-	# print(possibleMoves)
 	# 对可以落子的点进行随机排序
 	random.shuffle(possibleMoves)
-
-	for x, y in possibleMoves:
-		if isOnCorner(x, y):
-			return [x, y]
 
 	# 寻找最优落子
 	bestScore = -1
@@ -217,14 +202,60 @@ def getComputerMove(board, computerTile):
 
 	return bestMove
 
+# new
+# 计算在棋盘角上或边上的最优落子方案
+def getCornerSideBestMove(board, tile):
+	possibleMoves = getValidMoves(board, tile)
+	random.shuffle(possibleMoves)
 
-# 显示得分
-def showPoints(board, playerTile, computerTile):
-	scores = getScoreOfBoard(board)
-	print()
-	print('           ***** POINT ******')
-	print('    %s has %s points, %s has %s points.' % (playerTile, scores[playerTile], computerTile, scores[computerTile]))
+	for x, y in possibleMoves:
+		if isOnCorner(x, y):
+			return [x, y]
+		if isOnSide(x, y):
+			return [x, y]
 
+	return getComputerMove(board, tile)
+
+# new
+# 仅计算在棋盘边上的最优落子
+def getSideBestMove(board, tile):
+	possibleMoves = getValidMoves(board, tile)
+	random.shuffle(possibleMoves)				
+
+	for x, y in possibleMoves:
+		if isOnSide(x, y):
+			return [x, y]
+
+	return getComputerMove(board, tile)
+
+# new
+# 计算最差落子坐标
+def getWorstMove(board, tile):
+	possibleMoves = getValidMoves(board, tile)
+	random.shuffle(possibleMoves)
+
+	worstScore = 64
+	for x, y in possibleMoves:
+		dupeBoard = getBoardCopy(board)
+		makeMove(dupeBoard, tile, x, y)
+		score = getScoreOfBoard(dupeBoard)[tile]
+		if score < worstScore:
+			worstMove = [x, y]
+			worstScore = score
+
+	return worstMove
+	
+# new
+# 如果能得到角落的落子那就返回角落落子，否则返回一个差的落子
+def getCornerWorstMove(board, tile):
+	possibleMoves = getValidMoves(board, tile)
+	random.shuffle(possibleMoves)
+
+	for x, y in possibleMoves:
+		if isOnCorner(x, y):
+			return [x, y]
+
+	return getWorstMove(board, tile)					
 
 # 随机选择起始落子方
 def whoGosFirst():
@@ -233,16 +264,20 @@ def whoGosFirst():
 	else:
 		return 'player'	
 
-# 是否再来一局
-def playAgin():
-	print('Do you want to play again?(yes or no)')
-	return input().lower().startswith('y')											 
 
 # 初始程序
 def init():
 	print('WELCOME TO REVERS!')
 
-	while True:
+	x_wins = 0
+	o_wins = 0
+	ties = 0
+
+	numGames = int(input('Enter number of games to run: '))
+
+	for game in range(numGames):
+		print('Game #%s:' % (game), end=' ')
+
 		mainBoard = createNewBoard()
 		resetBoard(mainBoard)
 		showHints = False
@@ -251,42 +286,47 @@ def init():
 		else:
 			turn = 'O'	
 
-		print()
-		print('The [' + turn + '] will go first')
-
 		while True:
 			if turn == 'X':
 				otherTile = 'O'
-				x, y = getComputerMove(mainBoard, turn)
-				makeMove(mainBoard, turn, x, y)
+				# 这里可替换掐算法
+				# getRandomMove
+				# getCornerSideBestMove
+				# getSideBestMove
+				# getWorstMove
+				# getCornerWorstMove
+				x, y = getCornerSideBestMove(mainBoard, turn)
+				makeMove(mainBoard, turn, x, y)			
+
 			else:
 				# 电脑落子
 				# 显示棋盘
 				turn = 'O'
 				otherTile = 'X'
-				drawBoard(mainBoard)
-				showPoints(mainBoard, otherTile, turn)
-				input('Press [ENTER] to see the computer\'s move.')
 				x, y = getComputerMove(mainBoard, turn)
 				makeMove(mainBoard, turn, x, y)
+
 			# 检查电脑是否有落子的机会，如果没有就跳出程序
 			# 如果有就轮到电脑落子	
 			if getValidMoves(mainBoard, otherTile) == []:
 				break
 			else:
-				turn = otherTile	
+				turn = otherTile
 
-		drawBoard(mainBoard)
 		scores = getScoreOfBoard(mainBoard)
+		print('"X" scored %s points. "O" scored %s points.' % (scores['X'], scores['O']))
 		if scores['X'] > scores['O']:
-			print('         X is winner')
+			x_wins += 1
 		elif scores['X'] < scores['O']:
-			print('         O is winner')
+			o_wins += 1
 		else:
-			print('         The Game Was A Tie')	
+			ties += 1	
 
-		if not playAgin():
-			break
+	numGames = float(numGames)
+	x_percent = round(((x_wins / numGames) * 100), 2)
+	o_percent = round(((o_wins / numGames) * 100), 2)
+	tie_percent = round(((ties / numGames) * 100), 2)
+	print('X-wins %s games (%s%%), O-wins %s games (%s%%), ties for %s games (%s%%) of %s games total.' % (x_wins, x_percent, o_wins, o_percent, ties, tie_percent, numGames))
 
 
 init()				

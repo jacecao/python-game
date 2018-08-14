@@ -1,5 +1,7 @@
 # 64格棋盘游戏
 # 电脑和电脑玩
+# 不再绘制棋盘和每局得分显示
+# 最终只显示输赢百分比
 
 import random
 import sys
@@ -10,30 +12,6 @@ SPACE_3 = ' ' * 3
 # 记录上一个落子的坐标
 # 第一个元素记录x坐标，第二个元素记录y坐标，第三个元素记录是什么落子‘x’'o'
 MOVED_X_Y = []
-
-# 绘制棋盘数据
-def drawBoard(board):
-	HLINE = '+' + '---+' * 8
-
-	print(SPACE + '  1   2   3   4   5   6   7   8')
-	print()
-	print(SPACE + HLINE)
-
-	for y in range(8):
-		
-		VLINE = ''
-		print(y+1, end=' ')
-
-		for x in range(8):
-			if len(MOVED_X_Y) == 2 and MOVED_X_Y[0] == x and MOVED_X_Y[1] == y:
-				# 如果有上一次落子信息记录，那么对上一次落子信息作特殊标记
-				VLINE += ( '|.%s' % board[x][y] ) + '.'
-			else:
-
-				VLINE += ( '| %s' % board[x][y] ) + ' '
-
-		print(SPACE_3 + VLINE + '|')
-		print(SPACE + HLINE)	
 
 # 重设棋盘数据
 def resetBoard(board):
@@ -218,14 +196,6 @@ def getComputerMove(board, computerTile):
 	return bestMove
 
 
-# 显示得分
-def showPoints(board, playerTile, computerTile):
-	scores = getScoreOfBoard(board)
-	print()
-	print('           ***** POINT ******')
-	print('    %s has %s points, %s has %s points.' % (playerTile, scores[playerTile], computerTile, scores[computerTile]))
-
-
 # 随机选择起始落子方
 def whoGosFirst():
 	if random.randint(0, 1) == 0:
@@ -233,16 +203,20 @@ def whoGosFirst():
 	else:
 		return 'player'	
 
-# 是否再来一局
-def playAgin():
-	print('Do you want to play again?(yes or no)')
-	return input().lower().startswith('y')											 
 
 # 初始程序
 def init():
 	print('WELCOME TO REVERS!')
 
-	while True:
+	x_wins = 0
+	o_wins = 0
+	ties = 0
+
+	numGames = int(input('Enter number of games to run: '))
+
+	for game in range(numGames):
+		print('Game #%s:' % (game), end=' ')
+
 		mainBoard = createNewBoard()
 		resetBoard(mainBoard)
 		showHints = False
@@ -251,42 +225,41 @@ def init():
 		else:
 			turn = 'O'	
 
-		print()
-		print('The [' + turn + '] will go first')
-
 		while True:
 			if turn == 'X':
 				otherTile = 'O'
 				x, y = getComputerMove(mainBoard, turn)
-				makeMove(mainBoard, turn, x, y)
+				makeMove(mainBoard, turn, x, y)			
+
 			else:
 				# 电脑落子
 				# 显示棋盘
 				turn = 'O'
 				otherTile = 'X'
-				drawBoard(mainBoard)
-				showPoints(mainBoard, otherTile, turn)
-				input('Press [ENTER] to see the computer\'s move.')
 				x, y = getComputerMove(mainBoard, turn)
 				makeMove(mainBoard, turn, x, y)
+
 			# 检查电脑是否有落子的机会，如果没有就跳出程序
 			# 如果有就轮到电脑落子	
 			if getValidMoves(mainBoard, otherTile) == []:
 				break
 			else:
-				turn = otherTile	
+				turn = otherTile
 
-		drawBoard(mainBoard)
 		scores = getScoreOfBoard(mainBoard)
+		print('"X" scored %s points. "O" scored %s points.' % (scores['X'], scores['O']))
 		if scores['X'] > scores['O']:
-			print('         X is winner')
+			x_wins += 1
 		elif scores['X'] < scores['O']:
-			print('         O is winner')
+			o_wins += 1
 		else:
-			print('         The Game Was A Tie')	
+			ties += 1	
 
-		if not playAgin():
-			break
+	numGames = float(numGames)
+	x_percent = round(((x_wins / numGames) * 100), 2)
+	o_percent = round(((o_wins / numGames) * 100), 2)
+	tie_percent = round(((ties / numGames) * 100), 2)
+	print('X-wins %s games (%s%%), O-wins %s games (%s%%), ties for %s games (%s%%) of %s games total.' % (x_wins, x_percent, o_wins, o_percent, ties, tie_percent, numGames))
 
 
 init()				
